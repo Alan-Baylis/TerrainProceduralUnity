@@ -7,12 +7,12 @@ public class TestGenerationTerrain : MonoBehaviour {
     public GameObject prefab;
 	// Use this for initialization
 	void Start () {
-        Noise n = Noise.GetInstance();
-        n.Init(100, Noise.Type.VALUE);
+        Noise n = new Noise();
+        n.InitGradientNoise(100, 0, 4);
         
-        for(int i = 0; i < 50; i++)
+        for(int i = 0; i < 100; i++)
         {
-            for (int j = 0; j < 50; j++)
+            for (int j = 0; j < 100; j++)
             {
                 float f1,f2,f3,f4,f5;
                 n.GetNoise(i / 400000f, j / 400000f, out f1);

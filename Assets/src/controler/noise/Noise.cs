@@ -7,9 +7,6 @@ namespace Assets.src.controler.noise
 {
     public class Noise
     {
-        public enum Type { GRADIENT, VALUE};
-        private static Noise instance;
-
         private bool init = false;
 
         private int[,] mat;
@@ -17,31 +14,12 @@ namespace Assets.src.controler.noise
         private int[,] mat1;
         private int[,] mat2;
 
-        private List<List<float[]>> matCalc;
+        private List<List<float[,]>> matCalc;
 
         private int e;
 
-        private Noise()
+        public Noise()
         {
-            mat = new int[16, 16] { 
-                {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-                {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0 },
-                {-3,3,0,0,-2,-1,0,0,0,0,0,0,0,0,0,0 },
-                {2,-2,0,0,1,1,0,0,0,0,0,0,0,0,0,0 },
-                {0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0 },
-                {0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0 },
-                {0,0,0,0,0,0,0,0,3,3,0,0,-2,-1,0,0 },
-                {0,0,0,0,0,0,0,0,2,-2,0,0,1,1,0,0 },
-                {-3,0,3,0,0,0,0,0,-2,0,-1,0,0,0,0,0 },
-                {0,0,0,0,-3,0,3,0,0,0,0,0,-2,0,-1,0 },
-                {9,-9,-9,9,6,3,-6,-3,6,-6,3,-3,4,2,2,1 },
-                {-6,6,6,-6,-3,-3,3,3,-4,4,-2,2,-2,-2,-1,-1 },
-                {2,0,-2,0,0,0,0,0,1,0,1,0,0,0,0,0 },
-                {0,0,0,0,2,0,-2,0,0,0,0,0,1,0,1,0 },
-                {-6,6,6,-6,-4,-2,4,2,-3,3,-3,3,-2,-1,-2,-1 },
-                {4,-4,-4,4,2,2,-2,-2,2,-2,2,-2,1,1,1,1 }
-            };
-
             mat1 = new int[4, 4]
             {
                 {1, 0, 0, 0 },
@@ -58,78 +36,115 @@ namespace Assets.src.controler.noise
                 {0, 0, -1, 1 }
             };
         }
-        public static Noise GetInstance()
-        {
-            if (instance == null)
-                instance = new Noise();
 
-            return instance;
+        public bool GetNoise(float x, float y, out float noise)
+        {
+            if (!init)
+            {
+                noise = 0;
+                return false;
+            }
+
+            int xMin = (int)(x * e);
+            int yMin = (int)(y * e);
+            float rX = x * e - xMin;
+            float rY = y * e - yMin;
+
+
+
+            noise = GetNoise(xMin, yMin, rX, rY);
+            return true;
         }
 
-        public void Init(int e, Type type)
+        public void InitGradientNoise(int e , float mean , float stdDev)
+        {
+            
+
+            init = false;
+            this.e = e;
+            Random rand = new Random(14298);
+            List<List<float[]>> list = new List<List<float[]>>();
+            list.Capacity = e + 1;
+            for (var i = 0; i <= e; ++i)
+            {
+                List<float[]> l = new List<float[]>();
+                l.Capacity = e + 1;
+                for (var j = 0; j <= e; ++j)
+                {
+
+                    float[] tab;
+                    tab = new float[4] { 0, RandNormal(rand, mean, stdDev), RandNormal(rand, mean, stdDev), 0 };
+                    l.Add(tab);
+
+                }
+                list.Add(l);
+            }
+
+
+            matCalc = new List<List<float[,]>>();
+            matCalc.Capacity = e;
+
+            for (var i = 0; i < e; ++i)
+            {
+                List<float[,]> l = new List<float[,]>();
+                l.Capacity = e;
+                for (var j = 0; j < e; ++j)
+                {
+                    float[,] tab = new float[4, 4] {
+                       {list[i][j][0],list[i][j+1][0],list[i][j][2],list[i][j+1][2] } ,
+                       {list[i+1][j][0],list[i+1][j+1][0],list[i+1][j][2], list[i+1][j+1][2] },
+                       {list[i][j][1],list[i][j+1][1],list[i][j][3],list[i+1][j+1][3] },
+                       {list[i+1][j][1],list[i+1][j+1][1],list[i+1][j][3],list[i][j+1][3]}
+                    };
+                    l.Add(ProcessMat(tab));
+                }
+                matCalc.Add(l);
+            }
+
+            init = true;
+
+        }
+
+        public void InitValueNoise(int e)
         {
             init = false;
             this.e = e; 
             Random rand = new Random(14298);
             List<List<float[]>> list = new List<List<float[]>>();
-            //list.Capacity = e + 1;
+            list.Capacity = e + 1;
             for (var i = 0; i <= e; ++i)
             {
                 List<float[]> l = new List<float[]>();
-                //l.Capacity = e + 1;
+                l.Capacity = e + 1;
                 for (var j = 0; j <= e; ++j)
                 {
                     
                     float[] tab;
-                    switch (type)
-                    {
                         
-                        case Type.GRADIENT:
-                            UnityEngine.Vector2 v = new UnityEngine.Vector2((float)(rand.NextDouble() * 2) - 1f, (float)(rand.NextDouble() * 2) - 1f);
-                            //v.Normalize();
-                            tab = new float[4] { 0, v.x, v.y, 0 };
-                            l.Add(tab);
-                            break;
+                    float val = (float)(rand.NextDouble() * 2) - 1f;
 
-                        case Type.VALUE:
-                            float val = (float)(rand.NextDouble() * 2) - 1f;
+                    tab = new float[4] { val, 0, 0, 0 };
+                    l.Add(tab);
 
-                            tab = new float[4] { val, 0, 0, 0 };
-                            l.Add(tab);
-                            break;
-                    }
-
-            }
+                }
                 list.Add(l);
             }
 
 
-            matCalc = new List<List<float[]>>();
-            //matCalc.Capacity = e;
+            matCalc = new List<List<float[,]>>();
+            matCalc.Capacity = e;
 
             for (var i = 0; i < e; ++i)
             {
-                List<float[]> l = new List<float[]>();
-                //l.Capacity = e;
+                List<float[,]> l = new List<float[,]>();
+                l.Capacity = e;
                 for (var j = 0; j < e; ++j)
                 {
-                    float[] tab = new float[16] {
-                        list[i][j][0],
-                        list[i+1][j][0],
-                        list[i][j+1][0],
-                        list[i+1][j+1][0],
-                        list[i][j][1],
-                        list[i+1][j][1],
-                        list[i][j+1][1],
-                        list[i+1][j+1][1],
-                        list[i][j][2],
-                        list[i+1][j][2],
-                        list[i][j+1][2],
-                        list[i+1][j+1][2],
-                        list[i][j][3],
-                        list[i+1][j][3],
-                        list[i][j+1][3],
-                        list[i+1][j+1][3]
+                    float[,] tab = new float[4,4] {
+                       {list[i][j][0],list[i][j+1][0],list[i][j][2],list[i][j+1][2] } ,
+                       {list[i+1][j][0],list[i+1][j+1][0],list[i+1][j][2], list[i+1][j+1][2] },
+                       {list[i][j][1],list[i][j+1][1],list[i][j][3],list[i+1][j+1][3] },
+                       {list[i+1][j][1],list[i+1][j+1][1],list[i+1][j][3],list[i][j+1][3]}                       
                     };
                     l.Add(ProcessMat(tab));
                 }
@@ -139,43 +154,51 @@ namespace Assets.src.controler.noise
             init = true;
         }
 
-        private float[] ProcessMat(float[] tab)
+        private float RandNormal(Random rand , float mean, float stdDev)
         {
-            List<float> resu = new List<float>();
-            resu.Capacity = 16;
-
-
-
-            for (int i = 0; i < 16; ++i)
-            {
-                float sum = 0;
-                for (int j = 0; j < 16; ++j)
-                {
-                    sum += mat[i, j] * tab[j];
-                }
-                resu.Add(sum);
-            }
-
-            return resu.ToArray();
+            float u1 =(float) rand.NextDouble(); //these are uniform(0,1) random doubles
+            float u2 = (float)rand.NextDouble();
+            float randStdNormal = (float)Math.Sqrt(-2.0 * Math.Log(u1)) * (float)Math.Sin(2.0 * Math.PI * u2); //random normal(0,1)
+            float randNormal = mean + stdDev * randStdNormal; //random normal(mean,stdDev^2)
+            return randNormal;
         }
 
-        public bool GetNoise(float x , float y , out float noise)
+        private float[,] ProcessMat(float[,] tab)
         {
-            if (!init)
+            float[,] resu = new float[4, 4];
+            float[,] temp = new float[4, 4];
+
+            for (int i =0; i < 4; ++i)
             {
-                noise = 0;
-                return false;
+                for (int j = 0; j < 4; ++j)
+                {
+                    float sum = 0;
+
+                    for (int k = 0; k < 4; ++k)
+                    {
+                        sum += mat1[i, k] * tab[k, j];
+
+                    }
+                    temp[i, j] = sum;
+                }
             }
-                
-            int xMin = (int)(x * e);
-            int yMin = (int)(y * e);
-            float rX = x * e - xMin;
-            float rY = y * e - yMin;
 
+            for (int i = 0; i < 4; ++i)
+            {
+                for (int j = 0; j < 4; ++j)
+                {
+                    float sum = 0;
 
-           
-            noise =  GetNoise(xMin, yMin, rX, rY);
-            return true;
+                    for (int k = 0; k < 4; ++k)
+                    {
+                        sum += temp[i, k] * mat2[k, j];
+
+                    }
+                    resu[i, j] = sum;
+                }
+            }
+
+            return resu;
         }
 
         private float GetNoise(int x , int y, float rX, float rY)
@@ -192,13 +215,13 @@ namespace Assets.src.controler.noise
 
             float sum = 0;
 
-            float[] tab = matCalc[x][y];
+            float[,] tab = matCalc[x][y];
          
             for (int i = 0; i < 4;++i)
             {
                 for (int j = 0; j < 4; ++j)
                 {
-                    sum += tab[i + j * 4] * Pow(rX, i) * Pow(rY, j);
+                    sum += tab[i,j] * Pow(rX, i) * Pow(rY, j);
                 }
             }
             
